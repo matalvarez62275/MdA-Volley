@@ -1,11 +1,11 @@
 import sys
 
-from func import *
+from metrics.metrics import *
 
 # Add the parent directory to the sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from miscellaneous.handle_files import get_video_name
+from handle_files import get_video_name
 
 valid = False
 
