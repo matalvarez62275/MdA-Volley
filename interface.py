@@ -64,6 +64,17 @@ def render_detections(video_path):
     cv2.destroyAllWindows()
     
 def graph_paths(data, video_path, show_path=False):
+    """
+    Generates and displays a series of graphs comparing the arm angle and finger distance 
+    between a professional and a user, using Dynamic Time Warping (DTW) visualization.
+    Parameters:
+    data (pd.DataFrame): The input data containing the arm angle and finger distance for both 
+                         the professional and the user.
+    video_path (str): The path to the video file, displayed in the title if show_path is True.
+    show_path (bool): If True, the video path is included in the graph title. Default is False.
+    Returns:
+    float: The elapsed time in seconds for generating and displaying the graphs.
+    """
 
     # Smooth the data
     smoothed_data = smooth_data(data, window_size=10)
