@@ -24,9 +24,10 @@ if valid:
     # Record the end time
     end_time = time.time()
     internal_time = end_time - start_time
-    
+
     # Render detections
     render_detections(video_path)
+    render_detections('PRO/videos/PRO1-right.mp4')
     
     # Plot results
     plot_time = graph_paths(data, video_path)

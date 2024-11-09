@@ -3,6 +3,8 @@ import cv2
 import matplotlib.pyplot as plt 
 from dtaidistance import dtw_visualisation as dtwvis
 import time
+import tkinter as tk
+from tkinter import messagebox
 
 from plot_data import *
 
@@ -27,42 +29,48 @@ def render_detections(video_path):
     mp_pose = mp.solutions.pose
     cap = cv2.VideoCapture(video_path)
 
-    ## Setup mediapipe instance
+    # Setup mediapipe instance
     with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as pose:
-        while cap.isOpened():
-            try:
-                frame = cap.read()[1]
+        while True:
+            cap.set(cv2.CAP_PROP_POS_FRAMES, 0)  # Reset to the beginning of the video
+            while cap.isOpened():
+                try:
+                    frame = cap.read()[1]
 
-                # Recolor image to RGB
-                image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                image.flags.writeable = False
+                    # Recolor image to RGB
+                    image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                    image.flags.writeable = False
 
-                # Make detection
-                results = pose.process(image)
+                    # Make detection
+                    results = pose.process(image)
 
-                # Recolor back to BGR
-                image.flags.writeable = True
-                image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-            except:
-                break
-            
-            # Render detections
-            mp_drawing.draw_landmarks(image, results.pose_landmarks, mp_pose.POSE_CONNECTIONS,
-                                    mp_drawing.DrawingSpec(color=(255, 0, 0), thickness=2, 
-                                                           circle_radius=2), 
-                                    mp_drawing.DrawingSpec(color=(94, 218, 250), thickness=2, 
-                                                           circle_radius=2) 
-                                     )        
+                    # Recolor back to BGR
+                    image.flags.writeable = True
+                    image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+                except:
+                    break
+                
+                # Render detections
+                mp_drawing.draw_landmarks(image, results.pose_landmarks, mp_pose.POSE_CONNECTIONS,
+                                        mp_drawing.DrawingSpec(color=(255, 0, 0), thickness=2, 
+                                                               circle_radius=2), 
+                                        mp_drawing.DrawingSpec(color=(94, 218, 250), thickness=2, 
+                                                               circle_radius=2) 
+                                         )        
 
-            image = cv2.resize(image, (1280, 720))
-            cv2.imshow('Pose Estimation', image)
+                image = cv2.resize(image, (1280, 720))
+                cv2.namedWindow('Pose Estimation', cv2.WINDOW_NORMAL | cv2.WINDOW_AUTOSIZE)
+                cv2.setWindowProperty('Pose Estimation', cv2.WND_PROP_TOPMOST, 1)
+                cv2.imshow('Pose Estimation', image)
 
-            if cv2.waitKey(10) & 0xFF == ord('q'):
-                break
-    
+                if cv2.waitKey(10) & 0xFF == ord('q'):
+                    cap.release()
+                    cv2.destroyAllWindows()
+                    return
+
     cap.release()
     cv2.destroyAllWindows()
-    
+
 def graph_paths(data, video_path, show_path=False):
     """
     Generates and displays a series of graphs comparing the arm angle and finger distance 
@@ -103,8 +111,11 @@ def graph_paths(data, video_path, show_path=False):
 
     ## Each graph 
     # FIRST PLOT - Ángulo del codo
-    dtwvis.plot_warping(smoothed_data.loc[smoothed_data['Player'] == 'Pro', 'Arm Angle'].tolist(),
-                        smoothed_data.loc[smoothed_data['Player'] == 'User', 'Arm Angle'].tolist(),
+    arm_angles_pro = smoothed_data.loc[smoothed_data['Player'] == 'Pro', 'Arm Angle'].tolist()
+    arm_angles_user = smoothed_data.loc[smoothed_data['Player'] == 'User', 'Arm Angle'].tolist()
+    
+    dtwvis.plot_warping(arm_angles_pro,
+                        arm_angles_user,
                         path_arm, 
                         fig=fig, axs=[ax[0,0], ax[1,0]], 
                         warping_line_options={'linewidth': 0.5, 'color': '#FFD700', 'alpha': 0.7})  # Golden lines
@@ -146,7 +157,7 @@ def graph_paths(data, video_path, show_path=False):
             ax[i, j].spines['right'].set_color('#00FFFF')
             ax[i, j].spines['bottom'].set_color('#00FFFF')
             ax[i, j].spines['left'].set_color('#00FFFF')
-
+            
     # Record the end time
     end_time = time.time()
     
@@ -156,4 +167,13 @@ def graph_paths(data, video_path, show_path=False):
     fig.tight_layout(rect=[0, 0.1, 1, 0.95])  # Adjust layout to fit similarity text
     plt.show()
     
+    # Check for arm angle alert condition
+    for angle in arm_angles_user:
+        if abs(angle - 90) >= 10:
+            root = tk.Tk()
+            root.withdraw()  # Hide the root window
+            messagebox.showwarning("Arm Angle Alert", f"Arm angle is {angle} degrees, which is {abs(angle - 90)} degrees away from 90!")
+            root.destroy()
+            break
+        
     return elapsed_time
